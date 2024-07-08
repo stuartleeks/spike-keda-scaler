@@ -1,0 +1,25 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: http-scaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: http-scaler
+  pollingInterval: 5  # Check every 5 seconds
+  cooldownPeriod:  30 # Period to wait before scaling down
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: prometheus
+    metadata:
+      # serverAddress: http://prometheus-server.default.svc.cluster.local:9090
+      serverAddress: http://prometheus-server:80
+      metricName: http_requests_total
+      threshold: "1"  # Set a threshold based on your metric and scale-down condition
+      query: |
+        sum(rate(http_requests_total{group="http-scaler", status_code="429"}[2m])) 
+    authenticationRef:
+      name: prometheus-auth
